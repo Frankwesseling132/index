@@ -68,14 +68,17 @@ document.getElementById('gpsToggle').addEventListener('click', function () {
                     updateUserList();
 
                     // Alert if user is moving
-                    if (lastPosition[currentUser] && (lastPosition[currentUser].lat !== latitude || lastPosition[currentUser].lng !== longitude)) {
-                        alert("You have moved!");
+                    if (lastPosition[currentUser] && 
+                        (lastPosition[currentUser].lat !== latitude || lastPosition[currentUser].lng !== longitude)) {
+                        alert(`${currentUser} is moving!`);
                     }
                     lastPosition[currentUser] = { lat: latitude, lng: longitude }; // Update last position
                 },
                 error => {
-                    console.error(error);
-                }
+                    console.error("Geolocation error: ", error);
+                    alert("Unable to access your location. Please enable location services.");
+                },
+                { enableHighAccuracy: true }
             );
             this.classList.add('active');
             this.innerText = 'Disable GPS';
@@ -85,45 +88,32 @@ document.getElementById('gpsToggle').addEventListener('click', function () {
     }
 });
 
-// Update database with user location
+// Update Firebase database
 function updateDatabase() {
-    const userRef = ref(database, 'users/' + currentUser);
-    set(userRef, {
-        lat: userList[currentUser].lat,
-        lng: userList[currentUser].lng
+    const userRef = ref(database, `users/${currentUser}`);
+    set(userRef, userList[currentUser]).catch((error) => {
+        console.error('Error updating database:', error);
     });
 }
 
 // Update user list display
 function updateUserList() {
     const userListContainer = document.getElementById('userList');
-    userListContainer.innerHTML = ''; // Clear the current list
-
-    for (const user in userList) {
+    userListContainer.innerHTML = '';
+    Object.keys(userList).forEach(username => {
         const userDiv = document.createElement('div');
-        userDiv.classList.add('user');
-        userDiv.innerText = user;
-
-        // Add pulse indicator if user is active
-        if (user === currentUser) {
-            const pulse = document.createElement('span');
-            pulse.classList.add('pulse');
-            userDiv.appendChild(pulse);
-        }
-
+        userDiv.className = 'user';
+        userDiv.innerText = `${username} - Lat: ${userList[username].lat}, Lng: ${userList[username].lng}`;
         userListContainer.appendChild(userDiv);
-    }
+    });
 }
 
-// Real-time updates from Firebase
-onValue(ref(database, 'users'), (snapshot) => {
+// Listen for user updates from Firebase
+const usersRef = ref(database, 'users');
+onValue(usersRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
         userList = data;
         updateUserList();
     }
 });
-
-// Load the Google Maps API script
-loadGoogleMaps();
- 
