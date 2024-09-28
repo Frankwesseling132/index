@@ -7,42 +7,6 @@
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="config.js" defer></script> <!-- Load configuration first -->
     <script type="module" src="main.js" defer></script> <!-- Load main.js afterwards -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            margin: 0;
-            height: 100vh; /* Full height to allow for proper layout */
-        }
-
-        #usernameOverlay {
-            margin: 20px;
-        }
-
-        #map {
-            height: 500px;
-            width: 100%; /* Make the map full width */
-        }
-
-        #userList {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            width: 300px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .user {
-            margin: 5px 0;
-        }
-    </style>
 </head>
 <body>
     <div id="usernameOverlay">
@@ -53,7 +17,7 @@
     <div id="welcomeMessage"></div>
     <button id="gpsToggle" style="display:none;">Enable GPS</button>
 
-    <div id="map"></div>
+    <div id="map" style="height: 500px;"></div>
     <div id="userList"></div> <!-- User list beneath the map -->
 </body>
-</html> 
+</html>
