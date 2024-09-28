@@ -8,7 +8,8 @@ const database = getDatabase(app);
 let map;
 let userList = {};
 let currentUser = null;
-let watchId = null;
+let watchId = null; // Declare watchId at the top
+let lastPosition = {}; // Track last position to detect movement
 
 // Load Google Maps
 function loadGoogleMaps() {
@@ -30,9 +31,7 @@ window.initMap = function () {
             { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
             { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
             { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-            { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9E9E9E" }] },
             { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
             { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#454545" }] },
             { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
         ]
@@ -67,6 +66,13 @@ document.getElementById('gpsToggle').addEventListener('click', function () {
                     userList[currentUser] = { lat: latitude, lng: longitude };
                     updateDatabase();
                     updateUserList();
+
+                    // Alert if user is moving
+                    if (lastPosition[currentUser] && 
+                        (lastPosition[currentUser].lat !== latitude || lastPosition[currentUser].lng !== longitude)) {
+                        alert(`${currentUser} is moving!`);
+                    }
+                    lastPosition[currentUser] = { lat: latitude, lng: longitude }; // Update last position
                 },
                 error => {
                     console.error("Geolocation error: ", error);
@@ -93,31 +99,12 @@ function updateDatabase() {
 // Update user list display
 function updateUserList() {
     const userListContainer = document.getElementById('userList');
-    userListContainer.innerHTML = ''; // Clear the current list
+    userListContainer.innerHTML = '';
     Object.keys(userList).forEach(username => {
         const userDiv = document.createElement('div');
         userDiv.className = 'user';
-        userDiv.innerText = username;
-
-        if (userList[username].lat && userList[username].lng) {
-            const latLng = { lat: userList[username].lat, lng: userList[username].lng };
-            const marker = new google.maps.Marker({
-                position: latLng,
-                map: map,
-                title: username,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 5, // Smaller size
-                    fillColor: '#00FF00', // Marker color
-                    fillOpacity: 1,
-                    strokeWeight: 2,
-                    strokeColor: 'white'
-                }
-            });
-            userDiv.innerText += ` - Lat: ${userList[username].lat}, Lng: ${userList[username].lng}`; // Display latitude and longitude
-        }
-
-        userListContainer.appendChild(userDiv); // Append user info to the list
+        userDiv.innerText = `${username} - Lat: ${userList[username].lat}, Lng: ${userList[username].lng}`;
+        userListContainer.appendChild(userDiv);
     });
 }
 
