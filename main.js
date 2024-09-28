@@ -126,3 +126,4 @@ onValue(ref(database, 'users'), (snapshot) => {
 
 // Load the Google Maps API script
 loadGoogleMaps();
+ 
