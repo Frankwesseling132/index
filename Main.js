@@ -9,7 +9,7 @@ let map;
 let userList = {};
 let currentUser = null;
 let watchId = null; // Declare watchId at the top
-let previousPosition = null; // Variable to store the previous position
+let lastPosition = {}; // Track last position to detect movement
 
 // Load Google Maps
 function loadGoogleMaps() {
@@ -31,9 +31,7 @@ window.initMap = function () {
             { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
             { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
             { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-            { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9E9E9E" }] },
             { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
             { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#454545" }] },
             { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
         ]
@@ -66,23 +64,15 @@ document.getElementById('gpsToggle').addEventListener('click', function () {
                 position => {
                     const { latitude, longitude } = position.coords;
                     userList[currentUser] = { lat: latitude, lng: longitude };
-
-                    // Check if the user has moved significantly
-                    if (previousPosition) {
-                        const distanceMoved = calculateDistance(
-                            previousPosition.lat,
-                            previousPosition.lng,
-                            latitude,
-                            longitude
-                        );
-                        if (distanceMoved > 0.1) { // threshold in kilometers
-                            alert(`${currentUser} is moving!`);
-                        }
-                    }
-
-                    previousPosition = { lat: latitude, lng: longitude }; // Update previous position
                     updateDatabase();
                     updateUserList();
+
+                    // Alert if user is moving
+                    if (lastPosition[currentUser] && 
+                        (lastPosition[currentUser].lat !== latitude || lastPosition[currentUser].lng !== longitude)) {
+                        alert(`${currentUser} is moving!`);
+                    }
+                    lastPosition[currentUser] = { lat: latitude, lng: longitude }; // Update last position
                 },
                 error => {
                     console.error("Geolocation error: ", error);
@@ -113,41 +103,9 @@ function updateUserList() {
     Object.keys(userList).forEach(username => {
         const userDiv = document.createElement('div');
         userDiv.className = 'user';
-        userDiv.innerText = `${username}`;
-
-        if (userList[username].lat && userList[username].lng) {
-            const latLng = { lat: userList[username].lat, lng: userList[username].lng };
-            const marker = new google.maps.Marker({
-                position: latLng,
-                map: map,
-                title: username,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor: '#00FF00',
-                    fillOpacity: 1,
-                    strokeWeight: 2,
-                    strokeColor: 'white'
-                }
-            });
-            const distance = calculateDistance(userList[currentUser].lat, userList[currentUser].lng, userList[username].lat, userList[username].lng);
-            userDiv.innerHTML += ` - Distance: ${distance.toFixed(2)} km (${(distance * 0.621371).toFixed(2)} miles)`;
-            userListContainer.appendChild(userDiv);
-        }
+        userDiv.innerText = `${username} - Lat: ${userList[username].lat}, Lng: ${userList[username].lng}`;
+        userListContainer.appendChild(userDiv);
     });
-}
-
-// Function to calculate distance between two coordinates
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Radius of the Earth in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-    return R * c; // Distance in kilometers
 }
 
 // Listen for user updates from Firebase
