@@ -114,4 +114,6 @@ onValue(usersRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
         userList = data;
-        update
+        updateUserList();
+    }
+});
