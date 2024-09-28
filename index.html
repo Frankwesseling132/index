@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Tracking App</title>
+    <title>Live Location Tracker</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module" src="config.js"></script>
 </head>
 <body>
-    <h1>Live Tracking App</h1>
-    <div id="welcomeMessage"></div>
-    <div class="overlay" id="usernameOverlay">
-        <h2>Please enter your name:</h2>
-        <input type="text" id="usernameField" placeholder="Username">
+    <div id="usernameOverlay">
+        <input type="text" id="usernameField" placeholder="Enter your username">
         <button id="setUsernameButton">Set Username</button>
     </div>
-    <button id="gpsToggle" style="display: none;">Enable GPS</button>
-    <div id="map"></div>
-    <div class="user-list" id="userList"></div>
+
+    <div id="welcomeMessage"></div>
+    <button id="gpsToggle" style="display:none;">Enable GPS</button>
+    
+    <div id="userList"></div>
+    <div id="map" style="height: 500px;"></div>
 
     <script type="module" src="main.js"></script>
 </body>
