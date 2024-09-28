@@ -11,11 +11,12 @@
     <div id="welcomeMessage"></div>
     <div class="overlay" id="usernameOverlay">
         <h2>Please enter your name:</h2>
+        <label for="usernameField">Username:</label> <!-- Correctly added label -->
         <input type="text" id="usernameField" placeholder="Username">
         <button id="setUsernameButton">Set Username</button>
     </div>
     <button id="gpsToggle" style="display: none;">Enable GPS</button>
-    <div id="map"></div>
+    <div id="map" style="height: 70vh;"></div>
     <div class="user-list" id="userList"></div>
 
     <script type="module" src="main.js"></script>
