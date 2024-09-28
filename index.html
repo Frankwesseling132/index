@@ -9,19 +9,17 @@
 <body>
     <h1>Live Tracking App</h1>
     <div id="welcomeMessage"></div>
-
-    <!-- Overlay for entering the username -->
     <div class="overlay" id="usernameOverlay">
         <h2>Please enter your name:</h2>
         
-        <!-- Input field for username without a label -->
-        <input type="text" id="usernameField" name="username" placeholder="Username">
-
+        <!-- Adding a label with a correct 'for' attribute -->
+        <label for="usernameField">Username:</label>
+        <input type="text" id="usernameField" placeholder="Username">
         <button id="setUsernameButton">Set Username</button>
     </div>
     
     <button id="gpsToggle" style="display: none;">Enable GPS</button>
-    <div id="map" style="height: 70vh;"></div>
+    <div id="map"></div>
     <div class="user-list" id="userList"></div>
 
     <script type="module" src="main.js"></script>
