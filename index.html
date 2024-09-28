@@ -9,12 +9,17 @@
 <body>
     <h1>Live Tracking App</h1>
     <div id="welcomeMessage"></div>
+
+    <!-- Overlay for entering the username -->
     <div class="overlay" id="usernameOverlay">
         <h2>Please enter your name:</h2>
-        <label for="usernameField">Username:</label> <!-- Correctly added label -->
-        <input type="text" id="usernameField" placeholder="Username">
+        
+        <!-- Input field for username without a label -->
+        <input type="text" id="usernameField" name="username" placeholder="Username">
+
         <button id="setUsernameButton">Set Username</button>
     </div>
+    
     <button id="gpsToggle" style="display: none;">Enable GPS</button>
     <div id="map" style="height: 70vh;"></div>
     <div class="user-list" id="userList"></div>
