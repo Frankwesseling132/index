@@ -1,123 +1,322 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
-import { firebaseConfig, googleMapsAPIKey } from './config.js';
+<!DOCTYPE html>
+<html lang="en">
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-let map;
-let userList = {};
-let currentUser = null;
-let watchId = null;
-
-function loadGoogleMaps() {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsAPIKey}&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-}
-
-window.initMap = function () {
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -34.397, lng: 150.644 },
-        zoom: 2,
-        styles: [
-            { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-            { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-            { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-            { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
-            { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-            { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9E9E9E" }] },
-            { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-            { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#454545" }] },
-            { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
-        ]
-    });
-}
-
-document.getElementById('setUsernameButton').addEventListener('click', function () {
-    const username = document.getElementById('usernameField').value.trim();
-    if (username) {
-        currentUser = username;
-        userList[username] = { lat: null, lng: null };
-        document.getElementById('usernameOverlay').style.display = 'none';
-        document.getElementById('welcomeMessage').innerText = `Welcome, ${currentUser}!`;
-        document.getElementById('gpsToggle').style.display = 'block';
-        loadGoogleMaps();
-        updateUserList();
-    }
-});
-
-document.getElementById('gpsToggle').addEventListener('click', function () {
-    if (this.classList.contains('active')) {
-        navigator.geolocation.clearWatch(watchId);
-        this.classList.remove('active');
-        this.innerText = 'Enable GPS';
-    } else {
-        if ("geolocation" in navigator) {
-            watchId = navigator.geolocation.watchPosition(
-                position => {
-                    const { latitude, longitude } = position.coords;
-                    userList[currentUser] = { lat: latitude, lng: longitude };
-                    updateDatabase();
-                    updateUserList();
-                },
-                error => {
-                    console.error("Geolocation error: ", error);
-                    alert("Unable to access your location. Please enable location services.");
-                },
-                { enableHighAccuracy: true }
-            );
-            this.classList.add('active');
-            this.innerText = 'Disable GPS';
-        } else {
-            alert("Geolocation is not supported by this browser.");
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tracking App</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0e0e0e;
+            color: #00ff00;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
-    }
-});
 
-function updateDatabase() {
-    const userRef = ref(database, `users/${currentUser}`);
-    set(userRef, userList[currentUser]).catch((error) => {
-        console.error('Error updating database:', error);
-    });
-}
+        h1 {
+            margin: 20px;
+            font-size: 2.5em;
+        }
 
-function updateUserList() {
-    const userListContainer = document.getElementById('userList');
-    userListContainer.innerHTML = '';
-    Object.keys(userList).forEach(username => {
-        const userDiv = document.createElement('div');
-        userDiv.className = 'user';
-        userDiv.innerText = username;
+        #map {
+            height: 70vh;
+            width: 100%;
+            border: 2px solid #00ff00;
+        }
 
-        if (userList[username].lat && userList[username].lng) {
-            const latLng = { lat: userList[username].lat, lng: userList[username].lng };
-            const marker = new google.maps.Marker({
-                position: latLng,
-                map: map,
-                title: username,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor: '#00FF00',
-                    fillOpacity: 1,
-                    strokeWeight: 2,
-                    strokeColor: 'white'
-                }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            animation: fadeIn 0.5s;
+        }
+
+        .overlay h2 {
+            color: #00ff00;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        #usernameField {
+            padding: 15px;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-size: 1.5em;
+        }
+
+        #setUsernameButton {
+            padding: 10px;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            font-size: 1.5em;
+        }
+
+        #setUsernameButton:hover {
+            background-color: #00ff00;
+            color: #1e1e1e;
+        }
+
+        .user-list {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .user {
+            margin: 10px;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .user:hover {
+            background: #00ff00;
+            color: #1e1e1e;
+        }
+
+        .pulse {
+            display: inline-block;
+            margin-left: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: red;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #welcomeMessage {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3em;
+            color: rgba(0, 255, 0, 0.8);
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+            z-index: 5;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        #gpsToggle {
+            margin-top: 20px;
+            padding: 10px;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #gpsToggle.active {
+            background-color: #00ff00;
+            color: #1e1e1e;
+        }
+
+        .new-user {
+            border: 2px solid gold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Tracking App</h1>
+    <div id="welcomeMessage"></div>
+    <div class="overlay" id="usernameOverlay">
+        <h2>Please enter your name:</h2>
+        <input type="text" id="usernameField" placeholder="Username">
+        <button id="setUsernameButton">Set Username</button>
+    </div>
+    <button id="gpsToggle" style="display: none;">Enable GPS</button>
+    <div id="map"></div>
+    <div class="user-list" id="userList"></div>
+
+    <script type="module">
+        // Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWU70-zhbT2hNNmlYvs_s_oJNbnOTLKl4",
+            authDomain: "maptracker-7afb6.firebaseapp.com",
+            databaseURL: "https://maptracker-7afb6-default-rtdb.firebaseio.com",
+            projectId: "maptracker-7afb6",
+            storageBucket: "maptracker-7afb6.appspot.com",
+            messagingSenderId: "874600101063",
+            appId: "1:874600101063:web:79d8010dee2bf0e57f7ae2",
+            measurementId: "G-HTXZEYZ3DK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let map;
+        let userMarkers = {};
+        let userList = {};
+        let currentUser = null;
+        const markerColor = '#00FF00';
+
+        // Load Google Maps asynchronously
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyDGOfNv0d5SlEsq2LvOJZJEJSgANeswKd4&callback=initMap";
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        // Initialize Google Map
+        window.initMap = function() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: -34.397, lng: 150.644 },
+                zoom: 2,
+                styles: [
+                    { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+                    { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+                    { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+                    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
+                    { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
+                    { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9E9E9E" }] },
+                    { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+                    { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+                    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#454545" }] },
+                    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
+                ]
             });
-            userListContainer.appendChild(userDiv);
         }
-    });
-}
 
-const usersRef = ref(database, 'users');
-onValue(usersRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-        userList = data;
-        updateUserList();
-    }
-});
+        document.getElementById('setUsernameButton').addEventListener('click', function () {
+            const username = document.getElementById('usernameField').value.trim();
+            if (username) {
+                currentUser = username;
+                userList[username] = { lat: null, lng: null };
+                document.getElementById('usernameOverlay').style.display = 'none';
+                document.getElementById('gpsToggle').style.display = 'block';
+                document.getElementById('welcomeMessage').innerText = `Welcome, ${username}!`;
+                setTimeout(() => {
+                    document.getElementById('welcomeMessage').style.opacity = 1;
+                }, 500);
+
+                // Set initial user info to the database
+                const userRef = ref(database, 'users/' + username);
+                set(userRef, { lat: null, lng: null });
+            }
+        });
+
+        // Listen for changes in user data
+        const usersRef = ref(database, 'users/');
+        onValue(usersRef, (snapshot) => {
+            const data = snapshot.val();
+            for (const [username, coords] of Object.entries(data)) {
+                if (!userMarkers[username] && coords.lat && coords.lng) {
+                    const marker = new google.maps.Marker({
+                        position: { lat: coords.lat, lng: coords.lng },
+                        map,
+                        title: username,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 7,
+                            fillColor: markerColor,
+                            fillOpacity: 1,
+                            strokeWeight: 1
+                        }
+                    });
+                    userMarkers[username] = marker;
+                } else if (userMarkers[username] && coords.lat && coords.lng) {
+                    userMarkers[username].setPosition({ lat: coords.lat, lng: coords.lng });
+                }
+            }
+
+            // Update user list
+            const userListElem = document.getElementById('userList');
+            userListElem.innerHTML = '';
+            for (const username of Object.keys(data)) {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user';
+                userDiv.innerText = username;
+                if (!userMarkers[username]) {
+                    userDiv.classList.add('new-user');
+                }
+                userListElem.appendChild(userDiv);
+            }
+        });
+
+        // Toggle GPS button functionality
+        const gpsToggle = document.getElementById('gpsToggle');
+        gpsToggle.addEventListener('click', function () {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    if (currentUser) {
+                        const userRef = ref(database, 'users/' + currentUser);
+                        set(userRef, { lat, lng });
+                    }
+                }, function (error) {
+                    console.log('Error occurred: ', error);
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+            gpsToggle.classList.toggle('active');
+        });
+
+        // Load Google Maps when page loads
+        window.onload = loadGoogleMaps;
+    </script>
+</body>
+
+</html>
