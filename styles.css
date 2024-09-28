@@ -93,7 +93,7 @@ h1 {
 
 .pulse {
     display: inline-block;
-    margin-left: px;
+    margin-left: 5px;
     width: var(--dot-size);
     height: var(--dot-size);
     border-radius: 50%;
